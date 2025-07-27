@@ -1,4 +1,5 @@
 import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { nanoid } from "nanoid";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -54,4 +55,18 @@ export const verification = pgTable("verification", {
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").$defaultFn(() => new Date()),
   updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
+});
+
+export const images = pgTable("images", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => `img_${nanoid(10)}`),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  s3Key: text("s3_key").notNull(),
+  filename: text("filename").notNull(),
+  uploadedAt: timestamp("uploaded_at")
+    .$defaultFn(() => new Date())
+    .notNull(),
 });
