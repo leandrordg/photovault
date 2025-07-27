@@ -1,13 +1,8 @@
-import { z } from "zod";
-import { baseProcedure, createTRPCRouter } from "../init";
+import { createTRPCRouter } from "../init";
+import { imagesRouter } from "../procedures/images";
 
 export const appRouter = createTRPCRouter({
-  // example procedure
-  example: baseProcedure
-    .input(z.object({ text: z.string().min(1) }))
-    .query(({ input }) => {
-      return `Hello ${input.text}`;
-    }),
+  images: imagesRouter,
 });
 
 export type AppRouter = typeof appRouter;

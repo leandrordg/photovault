@@ -1,4 +1,10 @@
-import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 
 export const user = pgTable("user", {
@@ -66,7 +72,22 @@ export const images = pgTable("images", {
     .references(() => user.id, { onDelete: "cascade" }),
   s3Key: text("s3_key").notNull(),
   filename: text("filename").notNull(),
+
+  title: text("title"),
+  description: text("description"),
+
+  width: integer("width"),
+  height: integer("height"),
+  fileSize: integer("file_size"),
+  mimeType: text("mime_type"),
+
+  isPublic: boolean("is_public").default(false),
+  isFavorite: boolean("is_favorite").default(false),
+
   uploadedAt: timestamp("uploaded_at")
+    .$defaultFn(() => new Date())
+    .notNull(),
+  updatedAt: timestamp("updated_at")
     .$defaultFn(() => new Date())
     .notNull(),
 });
