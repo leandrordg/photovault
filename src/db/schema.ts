@@ -76,6 +76,7 @@ export const images = pgTable("images", {
   title: text("title"),
   description: text("description"),
 
+  blur: text("blur"),
   width: integer("width"),
   height: integer("height"),
   fileSize: integer("file_size"),

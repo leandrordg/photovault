@@ -9,9 +9,11 @@ interface UploadProgress {
 }
 
 interface UseImageUploadOptions {
-  onSuccess?: (data: { key: string; url: string }) => void;
+  onSuccess?: (data: { key: string; url: string; image: any }) => void;
   onError?: (error: Error) => void;
   onProgress?: (progress: UploadProgress) => void;
+  title?: string;
+  description?: string;
 }
 
 interface UploadState {
@@ -32,6 +34,39 @@ export const useImageUpload = (options?: UseImageUploadOptions) => {
   const { mutateAsync: getPreSignedUrl } = useMutation(
     trpc.images.getPreSignedUrl.mutationOptions()
   );
+
+  const { mutateAsync: saveImage } = useMutation(
+    trpc.images.save.mutationOptions()
+  );
+
+  const getImageDimensions = (
+    file: File
+  ): Promise<{ width: number; height: number } | null> => {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith("image/")) {
+        resolve(null);
+        return;
+      }
+
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve({
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+        });
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      };
+
+      img.src = url;
+    });
+  };
 
   const uploadFile = async (file: File) => {
     try {
@@ -56,13 +91,32 @@ export const useImageUpload = (options?: UseImageUploadOptions) => {
         options?.onProgress?.(progress);
       });
 
+      // Obter dimensões da imagem se for uma imagem
+      const dimensions = await getImageDimensions(file);
+
+      // Gerar blurDataURL
+      const blurDataURL = await generateBlurDataURL(file);
+
+      // Salvar na base de dados
+      const savedImage = await saveImage({
+        s3Key: key,
+        blur: blurDataURL,
+        filename: file.name,
+        mimeType: file.type,
+        fileSize: file.size,
+        width: dimensions?.width,
+        height: dimensions?.height,
+        title: options?.title,
+        description: options?.description,
+      });
+
       setUploadState({
         isUploading: false,
         progress: null,
         error: null,
       });
 
-      const result = { key, url };
+      const result = { key, url, image: savedImage };
       options?.onSuccess?.(result);
       return result;
     } catch (error) {
@@ -147,8 +201,42 @@ export const useMultipleImageUpload = (options?: UseImageUploadOptions) => {
     trpc.images.getPreSignedUrl.mutationOptions()
   );
 
+  const { mutateAsync: saveImage } = useMutation(
+    trpc.images.save.mutationOptions()
+  );
+
+  const getImageDimensions = (
+    file: File
+  ): Promise<{ width: number; height: number } | null> => {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith("image/")) {
+        resolve(null);
+        return;
+      }
+
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve({
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+        });
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      };
+
+      img.src = url;
+    });
+  };
+
   const uploadFiles = async (files: File[]) => {
-    const results: Array<{ key: string; url: string; file: File }> = [];
+    const results: Array<{ key: string; url: string; file: File; image: any }> =
+      [];
 
     for (const file of files) {
       const fileId = `${file.name}-${Date.now()}`;
@@ -181,6 +269,25 @@ export const useMultipleImageUpload = (options?: UseImageUploadOptions) => {
           });
         });
 
+        // Obter dimensões da imagem se for uma imagem
+        const dimensions = await getImageDimensions(file);
+
+        // Gerar blurDataURL
+        const blurDataURL = await generateBlurDataURL(file);
+
+        // Salvar na base de dados
+        const savedImage = await saveImage({
+          s3Key: key,
+          filename: file.name,
+          mimeType: file.type,
+          fileSize: file.size,
+          width: dimensions?.width,
+          height: dimensions?.height,
+          title: options?.title,
+          description: options?.description,
+          blur: blurDataURL,
+        });
+
         setUploads(
           (prev) =>
             new Map(
@@ -192,7 +299,7 @@ export const useMultipleImageUpload = (options?: UseImageUploadOptions) => {
             )
         );
 
-        results.push({ key, url, file });
+        results.push({ key, url, file, image: savedImage });
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "Erro no upload";
@@ -299,4 +406,35 @@ export const useMultipleImageUpload = (options?: UseImageUploadOptions) => {
     reset,
     uploads: Object.fromEntries(uploads),
   };
+};
+
+const generateBlurDataURL = (file: File): Promise<string | undefined> => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith("image/")) return resolve(undefined);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        // tamanho reduzido para gerar efeito de blur (ex: 10x10 px)
+        const targetWidth = 10;
+        const targetHeight = Math.round((img.height / img.width) * targetWidth);
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        ctx?.drawImage(img, 0, 0, targetWidth, targetHeight);
+        const base64 = canvas.toDataURL("image/jpeg", 0.5); // baixa qualidade intencional
+        resolve(base64);
+      };
+      img.onerror = () => resolve(undefined);
+      if (typeof reader.result === "string") {
+        img.src = reader.result;
+      }
+    };
+    reader.onerror = () => resolve(undefined);
+    reader.readAsDataURL(file);
+  });
 };
