@@ -76,13 +76,11 @@ export const useImageUpload = (options?: UseImageUploadOptions) => {
         error: null,
       });
 
-      // Obter URL pré-assinada
       const { url, key } = await getPreSignedUrl({
         fileName: file.name,
         contentType: file.type,
       });
 
-      // Upload do arquivo para S3
       await uploadToS3(url, file, (progress) => {
         setUploadState((prev) => ({
           ...prev,
@@ -91,13 +89,10 @@ export const useImageUpload = (options?: UseImageUploadOptions) => {
         options?.onProgress?.(progress);
       });
 
-      // Obter dimensões da imagem se for uma imagem
       const dimensions = await getImageDimensions(file);
 
-      // Gerar blurDataURL
       const blurDataURL = await generateBlurDataURL(file);
 
-      // Salvar na base de dados
       const savedImage = await saveImage({
         s3Key: key,
         blur: blurDataURL,
@@ -117,7 +112,9 @@ export const useImageUpload = (options?: UseImageUploadOptions) => {
       });
 
       const result = { key, url, image: savedImage };
+
       options?.onSuccess?.(result);
+
       return result;
     } catch (error) {
       const errorMessage =
@@ -238,10 +235,10 @@ export const useMultipleImageUpload = (options?: UseImageUploadOptions) => {
     const results: Array<{ key: string; url: string; file: File; image: any }> =
       [];
 
-    for (const file of files) {
-      const fileId = `${file.name}-${Date.now()}`;
+    try {
+      for (const file of files) {
+        const fileId = `${file.name}-${Date.now()}`;
 
-      try {
         setUploads(
           (prev) =>
             new Map(
@@ -269,13 +266,10 @@ export const useMultipleImageUpload = (options?: UseImageUploadOptions) => {
           });
         });
 
-        // Obter dimensões da imagem se for uma imagem
         const dimensions = await getImageDimensions(file);
 
-        // Gerar blurDataURL
         const blurDataURL = await generateBlurDataURL(file);
 
-        // Salvar na base de dados
         const savedImage = await saveImage({
           s3Key: key,
           filename: file.name,
@@ -300,26 +294,20 @@ export const useMultipleImageUpload = (options?: UseImageUploadOptions) => {
         );
 
         results.push({ key, url, file, image: savedImage });
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Erro no upload";
-
-        setUploads(
-          (prev) =>
-            new Map(
-              prev.set(fileId, {
-                isUploading: false,
-                progress: null,
-                error: errorMessage,
-              })
-            )
-        );
-
-        throw error;
       }
-    }
 
-    return results;
+      if (results.length > 0) options?.onSuccess?.(results[0]);
+
+      return results;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Erro no upload";
+
+      options?.onError?.(
+        error instanceof Error ? error : new Error(errorMessage)
+      );
+      throw error;
+    }
   };
 
   const uploadToS3 = async (
@@ -419,14 +407,13 @@ const generateBlurDataURL = (file: File): Promise<string | undefined> => {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
 
-        // tamanho reduzido para gerar efeito de blur (ex: 10x10 px)
         const targetWidth = 10;
         const targetHeight = Math.round((img.height / img.width) * targetWidth);
         canvas.width = targetWidth;
         canvas.height = targetHeight;
 
         ctx?.drawImage(img, 0, 0, targetWidth, targetHeight);
-        const base64 = canvas.toDataURL("image/jpeg", 0.5); // baixa qualidade intencional
+        const base64 = canvas.toDataURL("image/jpeg", 0.5);
         resolve(base64);
       };
       img.onerror = () => resolve(undefined);
