@@ -63,10 +63,10 @@ export const verification = pgTable("verification", {
   updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
 });
 
-export const images = pgTable("images", {
+export const media = pgTable("media", {
   id: text("id")
     .primaryKey()
-    .$defaultFn(() => `img_${nanoid(10)}`),
+    .$defaultFn(() => `media_${nanoid(10)}`),
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
@@ -76,11 +76,20 @@ export const images = pgTable("images", {
   title: text("title"),
   description: text("description"),
 
-  blur: text("blur"),
+  mediaType: text("media_type").notNull(),
+  mimeType: text("mime_type").notNull(),
+  fileSize: integer("file_size").notNull(),
+
   width: integer("width"),
   height: integer("height"),
-  fileSize: integer("file_size"),
-  mimeType: text("mime_type"),
+
+  blur: text("blur"),
+
+  duration: integer("duration"),
+  thumbnailS3Key: text("thumbnail_s3_key"),
+  thumbnailBlur: text("thumbnail_blur"),
+
+  metadata: text("metadata"),
 
   isPublic: boolean("is_public").default(false),
   isFavorite: boolean("is_favorite").default(false),
@@ -91,4 +100,6 @@ export const images = pgTable("images", {
   updatedAt: timestamp("updated_at")
     .$defaultFn(() => new Date())
     .notNull(),
+
+  takenAt: timestamp("taken_at"),
 });

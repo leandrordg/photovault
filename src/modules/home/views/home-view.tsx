@@ -1,6 +1,5 @@
 "use client";
 
-import { SingleImageUpload } from "@/components/image-uploader";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { LogOutIcon } from "lucide-react";
@@ -28,8 +27,6 @@ export function HomeView() {
         <Button onClick={handleSignOut} disabled={isPending}>
           Sair <LogOutIcon />
         </Button>
-
-        <SingleImageUpload />
       </div>
     );
   }

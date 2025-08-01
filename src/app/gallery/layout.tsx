@@ -1,4 +1,4 @@
-export default function GalleryLayout({
+export default function MediaLayout({
   children,
 }: {
   children: React.ReactNode;
