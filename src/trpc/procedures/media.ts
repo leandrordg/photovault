@@ -21,9 +21,15 @@ export const mediaRouter = createTRPCRouter({
         fileName: z.string(),
         contentType: z
           .string()
-          .refine((type) => ACCEPTED_MEDIA_TYPES.includes(type as any), {
-            message: "Tipo de arquivo não suportado",
-          }),
+          .refine(
+            (type) =>
+              ACCEPTED_MEDIA_TYPES.includes(
+                type as (typeof ACCEPTED_MEDIA_TYPES)[number]
+              ),
+            {
+              message: "Tipo de arquivo não suportado",
+            }
+          ),
       })
     )
     .mutation(async ({ input }) => {
@@ -193,7 +199,7 @@ export const mediaRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      let whereConditions = [eq(media.userId, ctx.session.user.id)];
+      const whereConditions = [eq(media.userId, ctx.session.user.id)];
 
       if (input.mediaType !== "all") {
         whereConditions.push(eq(media.mediaType, input.mediaType));

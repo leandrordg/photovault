@@ -32,11 +32,15 @@ export const ACCEPTED_MEDIA_TYPES = [
 ] as const;
 
 export const isImageType = (mimeType: string): boolean => {
-  return ACCEPTED_IMAGE_TYPES.includes(mimeType as any);
+  return ACCEPTED_IMAGE_TYPES.includes(
+    mimeType as (typeof ACCEPTED_IMAGE_TYPES)[number]
+  );
 };
 
 export const isVideoType = (mimeType: string): boolean => {
-  return ACCEPTED_VIDEO_TYPES.includes(mimeType as any);
+  return ACCEPTED_VIDEO_TYPES.includes(
+    mimeType as (typeof ACCEPTED_VIDEO_TYPES)[number]
+  );
 };
 
 export const getMediaType = (mimeType: string): MediaType | null => {

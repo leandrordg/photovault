@@ -20,16 +20,12 @@ export function MediaUpload({ allowedTypes = "all" }: MediaUploadProps) {
 
   const { uploadFile, isUploading, progress, validateFile, reset } =
     useMediaUpload({
-      onSuccess: async (data) => {
+      onSuccess: async () => {
         queryClient.invalidateQueries(
           trpc.media.list.queryOptions({ mediaType: "all", limit: 50 })
         );
 
-        toast.success(
-          data.media.mediaType === "image"
-            ? "Imagem enviada com sucesso!"
-            : "Vídeo enviado com sucesso!"
-        );
+        toast.success("Arquivo enviado com sucesso! Você pode ver na galeria.");
 
         reset();
       },
@@ -165,7 +161,7 @@ export function MultipleMediaUpload({
 
   const { uploadFile, isUploading, progress, validateFile, reset } =
     useMediaUpload({
-      onSuccess: async (data) => {
+      onSuccess: async () => {
         queryClient.invalidateQueries(
           trpc.media.list.queryOptions({ mediaType: "all", limit: 50 })
         );

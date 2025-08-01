@@ -8,8 +8,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "PhotoVault",
-  description: "Armazene e compartilhe suas fotos de forma segura e privada.",
+  title: "photovault - Sua galeria de fotos",
+  description: "Armazene e compartilhe suas memórias com segurança",
 };
 
 export default function RootLayout({

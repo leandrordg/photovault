@@ -18,7 +18,7 @@ interface UploadProgress {
 }
 
 interface UseMediaUploadOptions {
-  onSuccess?: (data: { key: string; url: string; media: any }) => void;
+  onSuccess?: () => void;
   onError?: (error: Error) => void;
   onProgress?: (progress: UploadProgress) => void;
   title?: string;
@@ -53,7 +53,11 @@ export const useMediaUpload = (options?: UseMediaUploadOptions) => {
   );
 
   const validateFile = (file: File): { isValid: boolean; error?: string } => {
-    if (!ACCEPTED_MEDIA_TYPES.includes(file.type as any)) {
+    if (
+      !ACCEPTED_MEDIA_TYPES.includes(
+        file.type as (typeof ACCEPTED_MEDIA_TYPES)[number]
+      )
+    ) {
       return {
         isValid: false,
         error: `Tipo de arquivo não suportado: ${file.type}`,
@@ -269,7 +273,7 @@ export const useMediaUpload = (options?: UseMediaUploadOptions) => {
 
       const result = { key, url, media: savedMedia };
 
-      options?.onSuccess?.(result);
+      options?.onSuccess?.();
 
       return result;
     } catch (error) {
