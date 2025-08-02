@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
         hostname: "photovaultbr.s3.sa-east-1.amazonaws.com",
         protocol: "https",
       },
+      {
+        hostname: "avatars.githubusercontent.com",
+        protocol: "https",
+      },
     ],
   },
 };

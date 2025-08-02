@@ -6,6 +6,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { GalleryCard } from "@/modules/gallery/components/gallery-card";
 import { useGalleryFilters } from "@/modules/gallery/hooks/use-gallery-filter";
+import { Media } from "@/modules/gallery/types";
 import { useTRPC } from "@/trpc/client";
 import {
   useMutation,
@@ -19,13 +20,12 @@ import {
   LayoutGridIcon,
   VideoIcon,
 } from "lucide-react";
-import { useQueryState } from "nuqs";
 import { useState } from "react";
 
 export function GalleryView() {
   const [filters, setFilters] = useGalleryFilters();
-  const [selectedMedia, setSelectedMedia] = useQueryState("media");
   const [viewMode, setViewMode] = useState<"masonry" | "grid">("masonry");
+  const [selectedItem, setSelectedItem] = useState<Media | null>(null);
 
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -58,27 +58,27 @@ export function GalleryView() {
     })
   );
 
-  const handleDownloadMedia = (item: (typeof mediaItems)[number]) => {
+  const handleDownloadMedia = (item: Media) => {
     downloadMedia({ id: item.id });
   };
 
-  const handleMediaSelect = (item: (typeof mediaItems)[number]) => {
-    setSelectedMedia((prev) => (prev === item.id ? null : item.id));
-  };
-
-  const handleToggleFavorite = (item: (typeof mediaItems)[number]) => {
+  const handleToggleFavorite = (item: Media) => {
     toggleFavorite({ id: item.id });
   };
 
-  const handleDeleteMedia = (item: (typeof mediaItems)[number]) => {
+  const handleDeleteMedia = (item: Media) => {
     deleteMedia({ id: item.id });
   };
 
+  const handleMediaSelect = (item: Media) => {
+    setSelectedItem(item);
+  };
+
   return (
-    <div className="max-w-7xl mx-auto p-4 space-y-8">
+    <div className="max-w-7xl mx-auto p-4 space-y-4">
       <MultipleMediaUpload allowedTypes="all" />
 
-      <ScrollArea className="pb-4">
+      <ScrollArea className="pb-3">
         <ScrollBar orientation="horizontal" />
         <div className="flex items-center justify-between gap-2">
           <div className="flex gap-2">
@@ -152,13 +152,13 @@ export function GalleryView() {
       )}
 
       {mediaItems?.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <div className="flex justify-center mb-4">
-            <div className="p-4 bg-muted rounded-full">
-              <ImageIcon className="h-8 w-8" />
+        <div className="text-center py-12 text-muted-foreground space-y-2">
+          <div className="flex justify-center">
+            <div className="p-3 bg-muted rounded-full">
+              <ImageIcon className="size-6" />
             </div>
           </div>
-          <p className="text-lg font-medium">Nenhuma mídia encontrada</p>
+          <p className="font-medium">Nenhuma mídia encontrada</p>
           <p className="text-sm">
             {filters.showFavorites
               ? "Você ainda não tem mídias favoritadas."
@@ -170,15 +170,14 @@ export function GalleryView() {
           className={cn(
             "gap-4 space-y-4",
             viewMode === "masonry"
-              ? "columns-1 md:columns-2 lg:columns-3 xl:columns-4"
-              : "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 space-y-0"
+              ? "columns-1 xs:columns-2 md:columns-3 lg:columns-4"
+              : "grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 space-y-0"
           )}
         >
           {mediaItems.map((item) => (
             <GalleryCard
-              key={item.id}
               item={item}
-              isSelected={selectedMedia === item.id}
+              key={item.id}
               viewMode={viewMode}
               onSelect={handleMediaSelect}
               onToggleFavorite={handleToggleFavorite}
