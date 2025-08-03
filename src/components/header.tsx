@@ -1,6 +1,6 @@
 import { AuthModal } from "@/modules/auth/components/auth-modal";
 
-export function GalleryHeader() {
+export function Header() {
   return (
     <header className="h-14">
       <div className="px-4 h-full flex items-center gap-4">

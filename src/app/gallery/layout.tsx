@@ -1,4 +1,4 @@
-import { GalleryHeader } from "@/modules/gallery/components/gallery-header";
+import { Header } from "@/components/header";
 
 export default function MediaLayout({
   children,
@@ -7,7 +7,7 @@ export default function MediaLayout({
 }) {
   return (
     <div className="max-w-7xl mx-auto min-h-dvh">
-      <GalleryHeader />
+      <Header />
       {children}
     </div>
   );

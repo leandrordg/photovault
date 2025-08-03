@@ -1,4 +1,4 @@
-import { GalleryHeader } from "@/modules/gallery/components/gallery-header";
+import { Header } from "@/components/header";
 
 export default function WelcomeLayout({
   children,
@@ -7,7 +7,7 @@ export default function WelcomeLayout({
 }) {
   return (
     <div className="max-w-4xl mx-auto min-h-dvh">
-      <GalleryHeader />
+      <Header />
       {children}
     </div>
   );

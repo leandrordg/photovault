@@ -18,7 +18,7 @@ import {
   VideoIcon,
 } from "lucide-react";
 import Image from "next/image";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState } from "react";
 
 interface Props {
   item: Media;
@@ -123,18 +123,26 @@ export const MediaCard = memo(function GalleryCard({
   onSelect,
   onDownload,
 }: Props) {
+  const [isActive, setIsActive] = useState(false);
+
   const handleCardClick = useCallback(() => {
     onSelect?.(item);
   }, [onSelect, item]);
 
   return (
     <div
+      tabIndex={0}
       className={cn(
         "relative group cursor-pointer rounded-lg transition-all duration-200 min-h-32",
+        "outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
         viewMode === "masonry" ? "break-inside-avoid" : "aspect-square",
-        isSelected && "ring-2 ring-offset-2 ring-primary"
+        isSelected && "ring-2 ring-offset-2 ring-muted-foreground"
       )}
       onClick={handleCardClick}
+      onMouseEnter={() => setIsActive(true)}
+      onMouseLeave={() => setIsActive(false)}
+      onFocus={() => setIsActive(true)}
+      onBlur={() => setIsActive(false)}
     >
       <div
         className={cn(
@@ -246,7 +254,13 @@ export const MediaCard = memo(function GalleryCard({
         )}
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/90 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-lg flex items-end z-10">
+      <div
+        style={{
+          opacity: isActive ? 1 : 0,
+          pointerEvents: isActive ? "auto" : "none",
+        }}
+        className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/90 transform transition-all duration-300 rounded-lg group-hover:opacity-100 group-hover:pointer-events-auto opacity-0 pointer-events-none flex items-end z-10"
+      >
         <div className="p-3 w-full">
           {item.title && (
             <h3 className="font-semibold text-sm text-white truncate">

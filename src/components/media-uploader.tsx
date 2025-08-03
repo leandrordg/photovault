@@ -22,22 +22,21 @@ export function MediaUpload({ allowedTypes = "all" }: MediaUploadProps) {
   const queryClient = useQueryClient();
   const trpc = useTRPC();
 
-  const { uploadFile, isUploading, progress, validateFile, reset } =
-    useMediaUpload({
-      onSuccess: async () => {
-        queryClient.invalidateQueries(
-          trpc.media.list.queryOptions({ ...filters })
-        );
+  const { uploadFile, isUploading, progress, reset } = useMediaUpload({
+    onSuccess: async () => {
+      queryClient.invalidateQueries(
+        trpc.media.list.queryOptions({ ...filters })
+      );
 
-        toast.success("Arquivo enviado com sucesso! Você pode ver na galeria.");
+      toast.success("Arquivo enviado com sucesso! Você pode ver na galeria.");
 
-        reset();
-      },
-      onError: (error) => {
-        toast.error(error.message);
-        reset();
-      },
-    });
+      reset();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+      reset();
+    },
+  });
 
   const getAcceptedTypes = () => {
     if (allowedTypes === "images") {
@@ -54,13 +53,6 @@ export function MediaUpload({ allowedTypes = "all" }: MediaUploadProps) {
     const file = event.target.files?.[0];
 
     if (!file) return;
-
-    const validation = validateFile(file);
-
-    if (!validation.isValid) {
-      toast.error(validation.error);
-      return;
-    }
 
     try {
       await uploadFile(file);
@@ -92,12 +84,6 @@ export function MediaUpload({ allowedTypes = "all" }: MediaUploadProps) {
     const file = files[0];
 
     if (!file) return;
-
-    const validation = validateFile(file);
-    if (!validation.isValid) {
-      toast.error(validation.error);
-      return;
-    }
 
     try {
       await uploadFile(file);
@@ -212,21 +198,18 @@ export function MultipleMediaUpload({
   const queryClient = useQueryClient();
   const trpc = useTRPC();
 
-  const { uploadFile, isUploading, progress, validateFile, reset } =
-    useMediaUpload({
-      onSuccess: async () => {
-        queryClient.invalidateQueries(
-          trpc.media.list.queryOptions({ ...filters })
-        );
-        toast.success(
-          "Arquivos enviados com sucesso! Você pode ver na galeria."
-        );
-        reset();
-      },
-      onError: (error) => {
-        toast.error(error.message);
-      },
-    });
+  const { uploadFiles, isUploading, progress, reset } = useMediaUpload({
+    onSuccess: async () => {
+      queryClient.invalidateQueries(
+        trpc.media.list.queryOptions({ ...filters })
+      );
+      toast.success("Arquivos enviados com sucesso! Você pode ver na galeria.");
+      reset();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   const getAcceptedTypes = () => {
     if (allowedTypes === "images") {
@@ -240,32 +223,12 @@ export function MultipleMediaUpload({
   const processFiles = async (files: File[]) => {
     if (files.length === 0) return;
 
-    let successCount = 0;
-    let errorCount = 0;
+    if (isUploading) return;
 
-    for (const file of files) {
-      const validation = validateFile(file);
-
-      if (!validation.isValid) {
-        toast.error(`${file.name}: ${validation.error}`);
-        errorCount++;
-        continue;
-      }
-
-      try {
-        await uploadFile(file);
-        successCount++;
-      } catch {
-        toast.error(`Falha ao enviar ${file.name}. Tente novamente.`);
-        errorCount++;
-      }
-    }
-
-    if (successCount > 0) {
-      toast.success(`${successCount} arquivo(s) enviado(s) com sucesso!`);
-    }
-    if (errorCount > 0) {
-      toast.error(`${errorCount} arquivo(s) falharam no upload`);
+    try {
+      await uploadFiles(files);
+    } catch {
+      toast.error("Falha ao enviar os arquivos. Tente novamente.");
     }
 
     reset();

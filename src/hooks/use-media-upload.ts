@@ -25,18 +25,9 @@ interface UseMediaUploadOptions {
   description?: string;
 }
 
-interface UploadState {
-  isUploading: boolean;
-  progress: UploadProgress | null;
-  error: string | null;
-}
-
 export const useMediaUpload = (options?: UseMediaUploadOptions) => {
-  const [uploadState, setUploadState] = useState<UploadState>({
-    isUploading: false,
-    progress: null,
-    error: null,
-  });
+  const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
 
   const trpc = useTRPC();
 
@@ -200,11 +191,8 @@ export const useMediaUpload = (options?: UseMediaUploadOptions) => {
 
       const mediaType = getMediaType(file.type)!;
 
-      setUploadState({
-        isUploading: true,
-        progress: { loaded: 0, total: file.size, percentage: 0 },
-        error: null,
-      });
+      setIsUploading(true);
+      setProgress({ loaded: 0, total: file.size, percentage: 0 });
 
       const { url, key } = await getPreSignedUrl({
         fileName: file.name,
@@ -212,10 +200,7 @@ export const useMediaUpload = (options?: UseMediaUploadOptions) => {
       });
 
       await uploadToS3(url, file, (progress) => {
-        setUploadState((prev) => ({
-          ...prev,
-          progress,
-        }));
+        setProgress(progress);
         options?.onProgress?.(progress);
       });
 
@@ -265,11 +250,8 @@ export const useMediaUpload = (options?: UseMediaUploadOptions) => {
         description: options?.description,
       });
 
-      setUploadState({
-        isUploading: false,
-        progress: null,
-        error: null,
-      });
+      setIsUploading(false);
+      setProgress(null);
 
       const result = { key, url, media: savedMedia };
 
@@ -280,11 +262,117 @@ export const useMediaUpload = (options?: UseMediaUploadOptions) => {
       const errorMessage =
         error instanceof Error ? error.message : "Erro no upload";
 
-      setUploadState({
-        isUploading: false,
-        progress: null,
-        error: errorMessage,
-      });
+      setIsUploading(false);
+      setProgress(null);
+
+      options?.onError?.(
+        error instanceof Error ? error : new Error(errorMessage)
+      );
+      throw error;
+    }
+  };
+
+  const uploadFiles = async (files: File[]) => {
+    try {
+      for (const file of files) {
+        const validation = validateFile(file);
+        if (!validation.isValid) {
+          throw new Error(`${file.name}: ${validation.error}`);
+        }
+      }
+
+      const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+
+      setIsUploading(true);
+      setProgress({ loaded: 0, total: totalSize, percentage: 0 });
+
+      const results = [];
+      let totalLoaded = 0;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const mediaType = getMediaType(file.type)!;
+
+        const { url, key } = await getPreSignedUrl({
+          fileName: file.name,
+          contentType: file.type,
+        });
+
+        await uploadToS3(url, file, (fileProgress) => {
+          const newTotalLoaded = totalLoaded + fileProgress.loaded;
+          const totalProgress = {
+            loaded: newTotalLoaded,
+            total: totalSize,
+            percentage: Math.round((newTotalLoaded / totalSize) * 100),
+          };
+
+          setProgress(totalProgress);
+          options?.onProgress?.(totalProgress);
+        });
+
+        totalLoaded += file.size;
+
+        let width, height, duration, blur, thumbnailS3Key, thumbnailBlur;
+
+        if (mediaType === "image") {
+          const dimensions = await getImageDimensions(file);
+          width = dimensions?.width;
+          height = dimensions?.height;
+          blur = await generateBlurDataURL(file);
+        } else if (mediaType === "video") {
+          const metadata = await getVideoMetadata(file);
+          width = metadata?.width;
+          height = metadata?.height;
+          duration = metadata?.duration;
+
+          const thumbnailBlob = await generateVideoThumbnail(file);
+
+          if (thumbnailBlob) {
+            const thumbnailKey = key.replace(/\.[^/.]+$/, ".jpg");
+
+            const { url: thumbnailUrl } = await getPreSignedUrlCustom({
+              key: thumbnailKey,
+              contentType: "image/jpeg",
+            });
+
+            await uploadToS3(thumbnailUrl, thumbnailBlob, () => {});
+
+            thumbnailS3Key = thumbnailKey;
+            thumbnailBlur = await generateBlurFromBlob(thumbnailBlob);
+          }
+        }
+
+        const savedMedia = await saveMedia({
+          s3Key: key,
+          filename: file.name,
+          mimeType: file.type,
+          fileSize: file.size,
+          mediaType,
+          width,
+          height,
+          duration,
+          blur,
+          thumbnailS3Key,
+          thumbnailBlur,
+          title: options?.title,
+          description: options?.description,
+        });
+
+        results.push({ key, url, media: savedMedia });
+      }
+
+      setIsUploading(false);
+      setProgress(null);
+
+      options?.onSuccess?.();
+
+      return results;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Erro no upload";
+
+      setIsUploading(false);
+      setProgress(null);
 
       options?.onError?.(
         error instanceof Error ? error : new Error(errorMessage)
@@ -339,18 +427,17 @@ export const useMediaUpload = (options?: UseMediaUploadOptions) => {
   };
 
   const reset = () => {
-    setUploadState({
-      isUploading: false,
-      progress: null,
-      error: null,
-    });
+    setIsUploading(false);
+    setProgress(null);
   };
 
   return {
     uploadFile,
-    reset,
+    uploadFiles,
+    isUploading,
+    progress,
     validateFile,
-    ...uploadState,
+    reset,
   };
 };
 

@@ -105,35 +105,38 @@ export function GalleryView() {
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <MultipleMediaUpload allowedTypes="all" />
+    <div className="space-y-4">
+      <section className="px-4">
+        <MultipleMediaUpload allowedTypes="all" />
+      </section>
 
-      <ScrollArea className="pb-3">
+      <ScrollArea>
         <ScrollBar orientation="horizontal" />
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-2">
+
+        <nav className="flex items-center justify-between gap-2 py-1.5 px-4">
+          <div className="flex items-center gap-2">
             <Button
-              variant={filters.mediaType === "all" ? "default" : "secondary"}
+              variant={filters.mediaType === "all" ? "default" : "outline"}
               onClick={() => setFilters({ ...filters, mediaType: "all" })}
             >
               Todos
             </Button>
             <Button
-              variant={filters.mediaType === "image" ? "default" : "secondary"}
+              variant={filters.mediaType === "image" ? "default" : "outline"}
               onClick={() => setFilters({ ...filters, mediaType: "image" })}
             >
               <ImageIcon className="size-4" />
               Imagens
             </Button>
             <Button
-              variant={filters.mediaType === "video" ? "default" : "secondary"}
+              variant={filters.mediaType === "video" ? "default" : "outline"}
               onClick={() => setFilters({ ...filters, mediaType: "video" })}
             >
               <VideoIcon className="size-4" />
               Vídeos
             </Button>
             <Button
-              variant={filters.showFavorites ? "default" : "secondary"}
+              variant={filters.showFavorites ? "default" : "outline"}
               onClick={() =>
                 setFilters({
                   ...filters,
@@ -154,7 +157,7 @@ export function GalleryView() {
           <div className="flex gap-2">
             <Button
               size="sm"
-              variant={viewMode === "masonry" ? "default" : "secondary"}
+              variant={viewMode === "masonry" ? "default" : "outline"}
               onClick={() => setViewMode("masonry")}
               aria-label="Masonry View"
             >
@@ -163,7 +166,7 @@ export function GalleryView() {
             </Button>
             <Button
               size="sm"
-              variant={viewMode === "grid" ? "default" : "secondary"}
+              variant={viewMode === "grid" ? "default" : "outline"}
               onClick={() => setViewMode("grid")}
               aria-label="Grid View"
             >
@@ -171,18 +174,18 @@ export function GalleryView() {
               <span className="sr-only">Grade</span>
             </Button>
           </div>
-        </div>
+        </nav>
       </ScrollArea>
 
       {mediaItems && mediaItems.length > 0 && (
-        <div className="text-sm text-muted-foreground">
+        <section className="text-sm text-muted-foreground px-4">
           {mediaItems.length} {mediaItems.length === 1 ? "item" : "itens"}{" "}
           encontrado{mediaItems.length === 1 ? "" : "s"}
-        </div>
+        </section>
       )}
 
       {mediaItems?.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground space-y-2">
+        <section className="text-center py-12 text-muted-foreground space-y-2 px-4">
           <div className="flex justify-center">
             <div className="p-3 bg-muted rounded-full">
               <ImageIcon className="size-6" />
@@ -194,11 +197,11 @@ export function GalleryView() {
               ? "Você ainda não tem mídias favoritadas."
               : "Faça upload de algumas fotos ou vídeos para começar!"}
           </p>
-        </div>
+        </section>
       ) : (
-        <div
+        <section
           className={cn(
-            "gap-4 space-y-4",
+            "gap-4 space-y-4 px-4",
             viewMode === "masonry"
               ? "columns-1 xs:columns-2 md:columns-3 lg:columns-4"
               : "grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 space-y-0"
@@ -216,7 +219,7 @@ export function GalleryView() {
               onDownload={handleDownloadMedia}
             />
           ))}
-        </div>
+        </section>
       )}
 
       <MediaSheet
