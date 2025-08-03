@@ -26,6 +26,7 @@ import { FaGithub } from "react-icons/fa";
 
 export function AuthModal() {
   const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
   const { data, isPending } = authClient.useSession();
   const [loading, setLoading] = useState(false);
 
@@ -39,7 +40,10 @@ export function AuthModal() {
       callbackURL: "/gallery",
       newUserCallbackURL: "/welcome",
       fetchOptions: {
-        onSuccess: () => setLoading(false),
+        onSuccess: () => {
+          setLoading(false);
+          setIsOpen(false);
+        },
       },
     });
   };
@@ -51,6 +55,7 @@ export function AuthModal() {
       fetchOptions: {
         onSuccess: () => {
           setLoading(false);
+          setIsOpen(false);
           router.push("/");
         },
       },
@@ -67,7 +72,7 @@ export function AuthModal() {
 
   if (isAuthenticated) {
     return (
-      <Dialog>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
           <Button size="sm" aria-label={data.user.name || "Perfil do usuário"}>
             <User2Icon />
@@ -100,7 +105,7 @@ export function AuthModal() {
               <User2Icon />
               <span className="sr-only">Perfil</span>
             </Button>
-            <Button type="button" onClick={handleSignOut}>
+            <Button type="button" onClick={handleSignOut} disabled={loading}>
               Sair
               <LogOutIcon />
             </Button>

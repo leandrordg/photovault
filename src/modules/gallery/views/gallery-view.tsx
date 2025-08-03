@@ -4,7 +4,8 @@ import { MultipleMediaUpload } from "@/components/media-uploader";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { GalleryCard } from "@/modules/gallery/components/gallery-card";
+import { MediaCard } from "@/modules/gallery/components/media-card";
+import { MediaSheet } from "@/modules/gallery/components/media-sheet";
 import { useGalleryFilters } from "@/modules/gallery/hooks/use-gallery-filter";
 import { Media } from "@/modules/gallery/types";
 import { useTRPC } from "@/trpc/client";
@@ -25,7 +26,8 @@ import { useState } from "react";
 export function GalleryView() {
   const [filters, setFilters] = useGalleryFilters();
   const [viewMode, setViewMode] = useState<"masonry" | "grid">("masonry");
-  const [selectedItem, setSelectedItem] = useState<Media | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -34,7 +36,7 @@ export function GalleryView() {
     trpc.media.list.queryOptions({ ...filters })
   );
 
-  const { mutate: toggleFavorite } = useMutation(
+  const { mutateAsync: toggleFavorite } = useMutation(
     trpc.media.toggleFavorite.mutationOptions({
       onSuccess: () => {
         queryClient.invalidateQueries(
@@ -44,11 +46,11 @@ export function GalleryView() {
     })
   );
 
-  const { mutate: downloadMedia } = useMutation(
+  const { mutateAsync: downloadMedia } = useMutation(
     trpc.media.download.mutationOptions()
   );
 
-  const { mutate: deleteMedia } = useMutation(
+  const { mutateAsync: deleteMedia } = useMutation(
     trpc.media.delete.mutationOptions({
       onSuccess: () => {
         queryClient.invalidateQueries(
@@ -58,24 +60,52 @@ export function GalleryView() {
     })
   );
 
-  const handleDownloadMedia = (item: Media) => {
-    downloadMedia({ id: item.id });
+  const handleDownloadMedia = async (item: Media) => {
+    const { url, filename } = await downloadMedia({ id: item.id });
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.style.display = "none";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const handleToggleFavorite = (item: Media) => {
-    toggleFavorite({ id: item.id });
+  const handleToggleFavorite = async (item: Media) => {
+    await toggleFavorite({ id: item.id });
+
+    if (selectedMedia && selectedMedia.id === item.id) {
+      setSelectedMedia({ ...item, isFavorite: !item.isFavorite });
+    }
   };
 
-  const handleDeleteMedia = (item: Media) => {
-    deleteMedia({ id: item.id });
+  const handleDeleteMedia = async (item: Media) => {
+    await deleteMedia({ id: item.id });
+
+    if (selectedMedia && selectedMedia.id === item.id) {
+      setSheetOpen(false);
+      setSelectedMedia(null);
+    }
   };
 
   const handleMediaSelect = (item: Media) => {
-    setSelectedItem(item);
+    setSelectedMedia(item);
+    setSheetOpen(true);
+  };
+
+  const handleSheetOpenChange = (open: boolean) => {
+    setSheetOpen(open);
+    if (!open) {
+      setTimeout(() => {
+        setSelectedMedia(null);
+      }, 300);
+    }
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 space-y-4">
+    <div className="p-4 space-y-4">
       <MultipleMediaUpload allowedTypes="all" />
 
       <ScrollArea className="pb-3">
@@ -171,14 +201,15 @@ export function GalleryView() {
             "gap-4 space-y-4",
             viewMode === "masonry"
               ? "columns-1 xs:columns-2 md:columns-3 lg:columns-4"
-              : "grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 space-y-0"
+              : "grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 space-y-0"
           )}
         >
           {mediaItems.map((item) => (
-            <GalleryCard
+            <MediaCard
               item={item}
               key={item.id}
               viewMode={viewMode}
+              isSelected={selectedMedia?.id === item.id}
               onSelect={handleMediaSelect}
               onToggleFavorite={handleToggleFavorite}
               onDelete={handleDeleteMedia}
@@ -187,6 +218,15 @@ export function GalleryView() {
           ))}
         </div>
       )}
+
+      <MediaSheet
+        open={sheetOpen}
+        onOpenChange={handleSheetOpenChange}
+        media={selectedMedia}
+        onToggleFavorite={handleToggleFavorite}
+        onDownload={handleDownloadMedia}
+        onDelete={handleDeleteMedia}
+      />
     </div>
   );
 }

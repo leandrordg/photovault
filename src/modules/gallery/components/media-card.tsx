@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { GalleryDeleteModal } from "@/modules/gallery/components/gallery-delete-modal";
 import { Media } from "@/modules/gallery/types";
 import { formatDuration } from "@/utils/format-duration";
 import { formatFileSize } from "@/utils/format-file-size";
@@ -17,29 +18,115 @@ import {
   VideoIcon,
 } from "lucide-react";
 import Image from "next/image";
-import { GalleryDeleteModal } from "./gallery-delete-modal";
+import { memo, useCallback } from "react";
 
 interface Props {
   item: Media;
   isSelected?: boolean;
   showActions?: boolean;
   viewMode?: "masonry" | "grid";
-  onSelect: (item: Media) => void;
+  onSelect?: (item: Media) => void;
   onToggleFavorite: (item: Media) => void;
   onDelete: (item: Media) => void;
   onDownload: (item: Media) => void;
 }
 
-export function GalleryCard({
+const CardActions = memo(function CardActions({
+  item,
+  onToggleFavorite,
+  onDownload,
+  onDelete,
+}: {
+  item: Media;
+  onToggleFavorite: (item: Media) => void;
+  onDownload: (item: Media) => void;
+  onDelete: (item: Media) => void;
+}) {
+  const handleToggleFavorite = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onToggleFavorite(item);
+    },
+    [item, onToggleFavorite]
+  );
+
+  const handleDownload = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onDownload(item);
+    },
+    [item, onDownload]
+  );
+
+  const handleDeleteClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  return (
+    <div className="flex gap-1">
+      <Button
+        size="sm"
+        variant="ghost"
+        className="size-7 p-0 hover:bg-white/20"
+        onClick={handleToggleFavorite}
+        aria-label="Toggle Favorite"
+      >
+        <HeartIcon
+          className={cn(
+            "size-4",
+            item.isFavorite ? "fill-red-500 text-red-500" : "text-white"
+          )}
+        />
+        <span className="sr-only">
+          {item.isFavorite
+            ? "Remover dos favoritos"
+            : "Adicionar aos favoritos"}
+        </span>
+      </Button>
+
+      <Button
+        size="sm"
+        variant="ghost"
+        className="size-7 p-0 hover:bg-white/20"
+        onClick={handleDownload}
+        aria-label="Download"
+      >
+        <DownloadIcon className="size-4 text-white" />
+        <span className="sr-only">Baixar</span>
+      </Button>
+
+      <div onClick={(e) => e.stopPropagation()}>
+        <GalleryDeleteModal item={item} onDelete={onDelete}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="size-7 p-0 hover:bg-red-500/20"
+            onClick={handleDeleteClick}
+            aria-label="Delete"
+          >
+            <Trash2Icon className="size-4 text-white" />
+            <span className="sr-only">Excluir</span>
+          </Button>
+        </GalleryDeleteModal>
+      </div>
+    </div>
+  );
+});
+
+export const MediaCard = memo(function GalleryCard({
   item,
   isSelected = false,
   showActions = true,
   viewMode = "masonry",
-  onSelect,
   onToggleFavorite,
   onDelete,
+  onSelect,
   onDownload,
 }: Props) {
+  const handleCardClick = useCallback(() => {
+    onSelect?.(item);
+  }, [onSelect, item]);
+
   return (
     <div
       className={cn(
@@ -47,7 +134,7 @@ export function GalleryCard({
         viewMode === "masonry" ? "break-inside-avoid" : "aspect-square",
         isSelected && "ring-2 ring-offset-2 ring-primary"
       )}
-      onClick={() => onSelect(item)}
+      onClick={handleCardClick}
     >
       <div
         className={cn(
@@ -69,6 +156,9 @@ export function GalleryCard({
               )}
               placeholder="blur"
               loading="lazy"
+              priority={false}
+              unoptimized={false}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           </div>
         ) : (
@@ -102,8 +192,8 @@ export function GalleryCard({
               </div>
             )}
 
-            <div className="absolute inset-0 flex items-center justify-center z-20">
-              <div className="bg-black/60 backdrop-blur-sm rounded-full p-3 transition-all duration-300 group-hover:bg-black/60 group-hover:backdrop-blur-lg">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-black/60 backdrop-blur-sm rounded-full p-3 transition-all duration-300 group-hover:bg-black/60 group-hover:backdrop-blur-lg z-20">
                 <PlayIcon className="size-4 text-white fill-white" />
               </div>
             </div>
@@ -178,52 +268,12 @@ export function GalleryCard({
             </div>
 
             {showActions && (
-              <div className="flex gap-1">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="size-7 p-0 hover:bg-white/20"
-                  onClick={() => onToggleFavorite(item)}
-                  aria-label="Toggle Favorite"
-                >
-                  <HeartIcon
-                    className={cn(
-                      "size-4",
-                      item.isFavorite
-                        ? "fill-red-500 text-red-500"
-                        : "text-white"
-                    )}
-                  />
-                  <span className="sr-only">
-                    {item.isFavorite
-                      ? "Remover dos favoritos"
-                      : "Adicionar aos favoritos"}
-                  </span>
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="size-7 p-0 hover:bg-white/20"
-                  onClick={() => onDownload(item)}
-                  aria-label="Download"
-                >
-                  <DownloadIcon className="size-4 text-white" />
-                  <span className="sr-only">Baixar</span>
-                </Button>
-
-                <GalleryDeleteModal item={item} onDelete={onDelete}>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="size-7 p-0 hover:bg-red-500/20"
-                    aria-label="Delete"
-                  >
-                    <Trash2Icon className="size-4 text-white" />
-                    <span className="sr-only">Excluir</span>
-                  </Button>
-                </GalleryDeleteModal>
-              </div>
+              <CardActions
+                item={item}
+                onToggleFavorite={onToggleFavorite}
+                onDownload={onDownload}
+                onDelete={onDelete}
+              />
             )}
           </div>
         </div>
@@ -236,4 +286,4 @@ export function GalleryCard({
       )}
     </div>
   );
-}
+});
